@@ -1,0 +1,1 @@
+<?php $filesInfo = ["/bitrix/templates/landing24/template_styles.css" => "17175827762401",]; ?>
