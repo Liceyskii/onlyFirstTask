@@ -1,0 +1,12 @@
+/bitrix/*
+/upload
+/bitrix/templates/landing24
+.access.php
+.htaccess
+favicon.ico
+urlrewrite.php
+
+!bitrix/cache
+!bitrix/managed_cache
+!bitrix/templates
+!bitrix/site_checker_8567f5cd9ecfec947c50f0027005af9e.log
