@@ -57,6 +57,16 @@ while (($data = fgetcsv($handle, 1000, ",")) !== false) {
         'SCHEDULE' => trim($data[10]),
     ];
 
+    // обработка поля "Местоположение"
+    $locationValue = strtolower(trim($data[2]));
+    foreach ($arProps['LOCATION'] as $key => $id) {
+        $arKey = explode(',', $key);
+        if (strtolower(trim($arKey[0])) === $locationValue) {
+            $prop['LOCATION'] = $id;
+            break; 
+        }
+    }
+
     // Обработка поля "Офис"
     // $officeName = strtolower($prop['OFFICE']);
     // if ($officeName == 'центральный офис') {
@@ -107,7 +117,6 @@ while (($data = fgetcsv($handle, 1000, ",")) !== false) {
         'TYPE',
         'ACTIVITY',
         'FIELD',
-        'LOCATION',
         'SCHEDULE',
     ];
     foreach ($properties as $propertyName) {
