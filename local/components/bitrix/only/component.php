@@ -174,39 +174,35 @@ if (CModule::IncludeModule('iblock')) {
         $arResult['TRIP_END'] = $tripEnd;
     }
 
+    // Проверка доступности автомобилей
+    $arResult['AVAILABLE_CARS'] = [];
+    foreach ($arResult['ELEMENTS'] as $arElement) {
+        $isCarUsed = false;
+        foreach ($arResult['TRIPS'] as $arTrip) {
+            if ($arTrip['PROPERTY_CAR_MODEL'] === $arElement['MODEL'] &&
+                (strtotime($arResult['TRIP_START']) <= strtotime($arTrip['PROPERTY_END_TIME_VALUE']) && strtotime($arResult['TRIP_END']) >= strtotime($arTrip['PROPERTY_START_TIME_VALUE']))
+            ) {
+                $isCarUsed = true;
+                break;
+            }
+        }
+        if (!$isCarUsed) {
+            $arResult['AVAILABLE_CARS'][] = $arElement;
+        }
+    }
     ?>
 
     <h2>Список автомобилей</h2>
     <ul>
-        <?php foreach ($arResult['ELEMENTS'] as $arElement): ?>
-            <?php
-            // Проверяем, не используется ли этот автомобиль в уже запланированных поездках
-            $isCarUsed = false;
-            if (!empty($arResult['TRIPS'])) {
-                foreach ($arResult['TRIPS'] as $arTrip) {
-                    if ($arTrip['PROPERTY_CAR_MODEL'] === $arElement['MODEL'] &&
-                        (
-                            (strtotime($arResult['TRIP_START']) >= strtotime($arTrip['PROPERTY_START_TIME_VALUE']) && strtotime($arResult['TRIP_START']) <= strtotime($arTrip['PROPERTY_END_TIME_VALUE'])) ||
-                            (strtotime($arResult['TRIP_END']) >= strtotime($arTrip['PROPERTY_START_TIME_VALUE']) && strtotime($arResult['TRIP_END']) <= strtotime($arTrip['PROPERTY_END_TIME_VALUE']))
-                        )
-                    ) {
-                        $isCarUsed = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!$isCarUsed):
-            ?>
-                <li>
-                    <b>Модель:</b> <?= $arElement['MODEL'] ?>
-                    <br>
-                    <b>Категория комфорта:</b> <?= $arElement['CATEGORY_COMFORT'] ?>
-                    <br>
-                    <b>Водитель:</b> <?= $arElement['DRIVER_LAST_NAME'] ?> <?= $arElement['DRIVER_NAME'] ?>
-                    (<?= $arElement['DRIVER_CONTACT_NUMBER'] ?>)
-                </li>
-            <?php endif; ?>
+        <?php foreach ($arResult['AVAILABLE_CARS'] as $arElement): ?>
+            <li>
+                <b>Модель:</b> <?= $arElement['MODEL'] ?>
+                <br>
+                <b>Категория комфорта:</b> <?= $arElement['CATEGORY_COMFORT'] ?>
+                <br>
+                <b>Водитель:</b> <?= $arElement['DRIVER_LAST_NAME'] ?> <?= $arElement['DRIVER_NAME'] ?>
+                (<?= $arElement['DRIVER_CONTACT_NUMBER'] ?>)
+            </li>
         <?php endforeach; ?>
     </ul>
 
