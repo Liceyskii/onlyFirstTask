@@ -42,6 +42,81 @@ function getIBlockIdByIBlockCode($code) {
     return $iblockId;
 }
 
+// Функция для получения информации о водителе
+function getDriverInfo($driverId) {
+    $driver = CIBlockElement::GetByID($driverId)->Fetch();
+    $driverName = CIBlockElement::GetProperty($driver['IBLOCK_ID'], $driverId, ['sort' => 'asc'], ['CODE' => 'NAME'])->Fetch();
+    $driverLastName = CIBlockElement::GetProperty($driver['IBLOCK_ID'], $driverId, ['sort' => 'asc'], ['CODE' => 'LAST_NAME'])->Fetch();
+    $driverContactNumber = CIBlockElement::GetProperty($driver['IBLOCK_ID'], $driverId, ['sort' => 'asc'], ['CODE' => 'CONTACT_NUMBER'])->Fetch();
+
+    return [
+        'NAME' => $driverName['VALUE'],
+        'LAST_NAME' => $driverLastName['VALUE'],
+        'CONTACT_NUMBER' => $driverContactNumber['VALUE'],
+    ];
+}
+
+// Функция для получения информации о категории комфорта
+function getComfortCategoryInfo($comfortCategoryId) {
+    $comfortCategory = CIBlockElement::GetByID($comfortCategoryId)->Fetch();
+    $comfortCategoryName = CIBlockElement::GetProperty($comfortCategory['IBLOCK_ID'], $comfortCategoryId, ['sort' => 'asc'], ['CODE' => 'NAME'])->Fetch();
+    return $comfortCategoryName['VALUE'];
+}
+
+// Функция для получения информации о модели автомобиля
+function getModelInfo($carId) {
+    $car = CIBlockElement::GetByID($carId)->Fetch(); 
+    $model = CIBlockElement::GetProperty($car['IBLOCK_ID'], $carId, ['sort' => 'asc'], ['CODE' => 'MODEL'])->Fetch();
+    return $model['VALUE'];
+}
+
+// Функция для проверки доступности автомобиля
+function isCarAvailable($arElement, $arResult) {
+    $isCarUsed = false;
+    foreach ($arResult['TRIPS'] as $arTrip) {
+        if ($arTrip['PROPERTY_CAR_MODEL'] === $arElement['MODEL'] &&
+            (strtotime($arResult['TRIP_START']) <= strtotime($arTrip['PROPERTY_END_TIME_VALUE']) && strtotime($arResult['TRIP_END']) >= strtotime($arTrip['PROPERTY_START_TIME_VALUE']))
+        ) {
+            $isCarUsed = true;
+            break;
+        }
+    }
+    return !$isCarUsed;
+}
+
+// Функция для обхода всех выбранных элементов и формирования массива данных
+function processSelectedElements($rsIBlockElements, $userComfortCategoryId, $arResult) {
+    $elements = [];
+
+    while ($arElement = $rsIBlockElements->NavNext(false)) {
+        $arElement = htmlspecialcharsex($arElement);
+
+        $comfortCategoryId = $arElement['PROPERTY_CATEGORY_COMFORT_VALUE'];
+
+        if ($comfortCategoryId == $userComfortCategoryId) {
+            $comfortCategory = CIBlockElement::GetByID($comfortCategoryId)->Fetch();
+            $car = CIBlockElement::GetByID($arElement['ID'])->Fetch();
+
+            $driverId = $arElement['PROPERTY_DRIVER_VALUE'];
+            $driver = CIBlockElement::GetByID($driverId)->Fetch();
+
+            $driverInfo = getDriverInfo($driverId);
+            $comfortCategoryName = getComfortCategoryInfo($comfortCategoryId);
+            $model = getModelInfo($arElement['ID']);
+
+            $elements[] = [
+                'MODEL' => $model,
+                'CATEGORY_COMFORT' => $comfortCategoryName,
+                'DRIVER_NAME' => $driverInfo['NAME'],
+                'DRIVER_LAST_NAME' => $driverInfo['LAST_NAME'],
+                'DRIVER_CONTACT_NUMBER' => $driverInfo['CONTACT_NUMBER'],
+            ];
+            
+        }
+    }
+
+    return $elements;
+}
 
 // Проверяем, подключен ли модуль iblock
 if (CModule::IncludeModule('iblock')) {
@@ -67,24 +142,24 @@ if (CModule::IncludeModule('iblock')) {
 
     // Получаем ID пользователя
     $userId = $USER->GetID();
-
+    
     // Получаем информацию о пользователе
     $user = CUser::GetByID($userId)->Fetch();
-
+    
     // Получаем значение поля "Должность"
     $userPositionId = $user['UF_POSITION'];
 
     // Получаем информацию о должности по ID
     $position = CIBlockElement::GetByID($userPositionId)->Fetch();
-
+    
     // Получаем значение свойства "NAME" должности
     $positionName = CIBlockElement::GetProperty($position['IBLOCK_ID'], $userPositionId, ['sort' => 'asc'], ['CODE' => 'NAME'])->Fetch();
     $positionComfortCategoriesId = CIBlockElement::GetProperty($position['IBLOCK_ID'], $userPositionId, ['sort' => 'asc'], ['CODE' => 'AVAILABLE_COMFORT_CATEGORIES'])->Fetch();
     $positionComfortCategories = CIBlockElement::GetByID($positionComfortCategoriesId)->Fetch();
-
+    
     // Получаем ID категории комфорта для пользователя
     $userComfortCategoryId = $positionComfortCategories['ID'];
-
+    
     // Получаем актуальные поездки
     $rsTrips = CIBlockElement::GetList(
         ['START_TIME' => 'ASC'], // Сортировка по полю START_TIME в порядке возрастания
@@ -98,7 +173,7 @@ if (CModule::IncludeModule('iblock')) {
         false,
         ['ID', 'PROPERTY_START_TIME', 'PROPERTY_END_TIME', 'PROPERTY_CAR'] // Выбираемые поля
     );
-
+    
     $arResult['TRIPS'] = [];
 
     // Проходим по поездкам
@@ -106,58 +181,17 @@ if (CModule::IncludeModule('iblock')) {
         // Получаем информацию о автомобиле для поездки
         $carId = $arTrip['PROPERTY_CAR_VALUE'];
         $car = CIBlockElement::GetByID($carId)->Fetch();
-
+        
         // Получаем значение свойства "MODEL"
         $model = CIBlockElement::GetProperty($car['IBLOCK_ID'], $carId, ['sort' => 'asc'], ['CODE' => 'MODEL'])->Fetch();
-
+        
         // Добавляем модель автомобиля в данные о поездке
         $arTrip['PROPERTY_CAR_MODEL'] = $model['VALUE'];
         $arResult['TRIPS'][] = $arTrip;
     }
-
+    
     // Проходим по всем выбранным элементам
-    while ($arElement = $rsIBlockElements->NavNext(false)) {
-        // Преобразуем HTML-символы в специальные символы
-        $arElement = htmlspecialcharsex($arElement);
-
-        // Получаем значение свойства "CATEGORY_COMFORT"
-        $comfortCategoryId = $arElement['PROPERTY_CATEGORY_COMFORT_VALUE']; // Получаем ID категории комфорта
-
-        // Проверяем, совпадает ли категория комфорта автомобиля с категорией комфорта пользователя
-        if ($comfortCategoryId == $userComfortCategoryId) {
-            // Получаем информацию о категории комфорта по ID
-            $comfortCategory = CIBlockElement::GetByID($comfortCategoryId)->Fetch();
-
-            // Получаем информацию об автомобиле по ID
-            $car = CIBlockElement::GetByID($arElement['ID'])->Fetch();
-
-            // Получаем значение свойства "DRIVER"
-            $driverId = $arElement['PROPERTY_DRIVER_VALUE']; // Получаем ID водителя
-
-            // Получаем информацию о водителе по ID
-            $driver = CIBlockElement::GetByID($driverId)->Fetch(); // Получаем данные о водителе
-
-            // Получаем значения свойств водителя
-            $driverName = CIBlockElement::GetProperty($driver['IBLOCK_ID'], $driverId, ['sort' => 'asc'], ['CODE' => 'NAME'])->Fetch();
-            $driverLastName = CIBlockElement::GetProperty($driver['IBLOCK_ID'], $driverId, ['sort' => 'asc'], ['CODE' => 'LAST_NAME'])->Fetch();
-            $driverContactNumber = CIBlockElement::GetProperty($driver['IBLOCK_ID'], $driverId, ['sort' => 'asc'], ['CODE' => 'CONTACT_NUMBER'])->Fetch();
-
-            // Получаем значение свойства "NAME" категории комфорта
-            $comfortCategoryName = CIBlockElement::GetProperty($comfortCategory['IBLOCK_ID'], $comfortCategoryId, ['sort' => 'asc'], ['CODE' => 'NAME'])->Fetch();
-
-            // Получаем значение свойства "MODEL"
-            $model = CIBlockElement::GetProperty($car['IBLOCK_ID'], $arElement['ID'], ['sort' => 'asc'], ['CODE' => 'MODEL'])->Fetch();
-
-            // Добавляем модель автомобиля, категорию комфорта и водителя в массив $arResult["ELEMENTS"]
-            $arResult['ELEMENTS'][] = [
-                'MODEL' => $model['VALUE'],
-                'CATEGORY_COMFORT' => $comfortCategoryName['VALUE'], // Используем VALUE свойства NAME
-                'DRIVER_NAME' => $driverName['VALUE'],
-                'DRIVER_LAST_NAME' => $driverLastName['VALUE'], // Используем VALUE свойства LAST_NAME
-                'DRIVER_CONTACT_NUMBER' => $driverContactNumber['VALUE'], // Используем VALUE свойства CONTACT_NUMBER
-            ];
-        }
-    }
+    $arResult['ELEMENTS'] = processSelectedElements($rsIBlockElements, $userComfortCategoryId, $arResult);
 
     // Сохраняем информацию о должности
     $arResult['POSITION'] = $positionName['VALUE'];
@@ -167,9 +201,7 @@ if (CModule::IncludeModule('iblock')) {
     $tripStart = $_GET['TRIP_START'];
     $tripEnd = $_GET['TRIP_END'];
 
-    // Проверяем, переданы ли значения TRIP_START и TRIP_END
     if (isset($tripStart) && isset($tripEnd)) {
-        // Выводим значения TRIP_START и TRIP_END на экран
         $arResult['TRIP_START'] = $tripStart;
         $arResult['TRIP_END'] = $tripEnd;
     }
@@ -177,21 +209,13 @@ if (CModule::IncludeModule('iblock')) {
     // Проверка доступности автомобилей
     $arResult['AVAILABLE_CARS'] = [];
     foreach ($arResult['ELEMENTS'] as $arElement) {
-        $isCarUsed = false;
-        foreach ($arResult['TRIPS'] as $arTrip) {
-            if ($arTrip['PROPERTY_CAR_MODEL'] === $arElement['MODEL'] &&
-                (strtotime($arResult['TRIP_START']) <= strtotime($arTrip['PROPERTY_END_TIME_VALUE']) && strtotime($arResult['TRIP_END']) >= strtotime($arTrip['PROPERTY_START_TIME_VALUE']))
-            ) {
-                $isCarUsed = true;
-                break;
-            }
-        }
-        if (!$isCarUsed) {
+        if (isCarAvailable($arElement, $arResult)) {
             $arResult['AVAILABLE_CARS'][] = $arElement;
         }
     }
     ?>
 
+    <!-- Рендерим результат -->
     <h2>Список автомобилей</h2>
     <ul>
         <?php foreach ($arResult['AVAILABLE_CARS'] as $arElement): ?>
@@ -227,7 +251,6 @@ if (CModule::IncludeModule('iblock')) {
 
 <?php
 } else {
-    // Если модуль iblock не подключен, то отображаем форму авторизации
     $APPLICATION->AuthForm("");
 }
 ?>
