@@ -1,10 +1,12 @@
 <?php
 
-// Подключаем обработчик событий
-require_once($_SERVER["DOCUMENT_ROOT"]."/local/php_interface/include/log_handler.php");
+use Only\Site\Handlers\Iblock;
 
-AddEventHandler('iblock', 'OnAfterIBlockElementAdd', 'EventHandler::OnAfterIBlockElementAddHandler');
-AddEventHandler('iblock', 'OnAfterIBlockElementUpdate', 'EventHandler::OnAfterIBlockElementUpdateHandler');
+// Подключаем обработчик событий
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/modules/dev.site/lib/Handlers/Iblock.php");
+
+AddEventHandler('iblock', 'OnAfterIBlockElementAdd', 'Only\Site\Handlers\Iblock::OnAfterIBlockElementAddHandler');
+AddEventHandler('iblock', 'OnAfterIBlockElementUpdate', 'Only\Site\Handlers\Iblock::OnAfterIBlockElementUpdateHandler');
 
 
 ?>
