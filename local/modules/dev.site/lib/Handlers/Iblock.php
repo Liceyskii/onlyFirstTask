@@ -7,13 +7,12 @@ use CUser;
 
 class Iblock
 {
-    // ID Инфоблока LOG
-    private static $iblockLogID = 1;
-
     // Обработчик создания элемента любого инфоблока кроме LOG
     public static function OnAfterIBlockElementAddHandler(&$arFields) : bool
     {
-        if ($arFields['IBLOCK_ID'] != self::$iblockLogID) {
+        $iblockLogID = self::getIblockIdByCode('LOG');
+
+        if ($arFields['IBLOCK_ID'] != $iblockLogID) {
             $USER = new CUser;
 
             // Получаем данные инфоблока
@@ -26,7 +25,7 @@ class Iblock
             $newElement = array(
                 'MODIFIED_BY' => $USER->GetID(),
                 'IBLOCK_SECTION_ID' => $section['ID'],
-                'IBLOCK_ID' => self::$iblockLogID,
+                'IBLOCK_ID' => $iblockLogID,
                 'NAME' => $arFields['ID'],
                 "PREVIEW_TEXT" => self::buildElementPath($arFields, $iblock),
                 'ACTIVE' => 'Y'
@@ -45,10 +44,11 @@ class Iblock
     // Обработчик обновления элемента любого инфоблока кроме LOG
     public static function OnAfterIBlockElementUpdateHandler(&$arFields) : bool
     {
+
+        $iblockLogID = self::getIblockIdByCode('LOG');
+
         if ($arFields['IBLOCK_ID'] != self::$iblockLogID) {
             $USER = new CUser;
-
-            // Debug::dumpToFile($arFields['IBLOCK_ID'], 'ID инфоблока обновляемого элемента', 'DebugLog');
 
             // Получаем данные инфоблока
             $iblock = \CIBlock::GetByID($arFields['IBLOCK_ID'])->Fetch();
@@ -60,7 +60,7 @@ class Iblock
             $newElement = array(
                 'MODIFIED_BY' => $USER->GetID(),
                 'IBLOCK_SECTION_ID' => $section['ID'],
-                'IBLOCK_ID' => self::$iblockLogID,
+                'IBLOCK_ID' => $iblockLogID,
                 'NAME' => $arFields['ID'], // ID обновляемого элемента
                 "PREVIEW_TEXT" => self::buildElementPath($arFields, $iblock),
                 'ACTIVE' => 'Y'
@@ -70,13 +70,12 @@ class Iblock
             $el = new \CIBlockElement; 
             
             $arFilter = array(
-                "IBLOCK_ID" => self::$iblockLogID, // ID инфоблока
+                "IBLOCK_ID" => $iblockLogID, // ID инфоблока
                 "NAME" => $arFields['ID'] // Имя элемента
             );
             
             $res = \CIBlockElement::GetList(array(), $arFilter, false, false, ['ID']);
             $element = $res->GetNextElement();
-            // Debug::dumpToFile($element, 'Получение ID элемента из LOG', 'DebugLog');
             $elementId = $element->GetFields();
 
 
@@ -184,11 +183,14 @@ class Iblock
 
     // Функция для поиска или создания раздела
     private static function findOrCreateSection($iblock) {
+
+        $iblockLogID = self::getIblockIdByCode('LOG');
+
         $sectionCode = $iblock['CODE'];
         $section = \CIBlockSection::GetList(
             array(), 
             array(
-                "IBLOCK_ID" => self::$iblockLogID, 
+                "IBLOCK_ID" => $iblockLogID, 
                 "NAME" => $iblock['NAME'], 
             ), 
             false,
@@ -198,7 +200,7 @@ class Iblock
         if (!$section) {
             $section = new CIBlockSection;
             $section->Add(array(
-                'IBLOCK_ID' => self::$iblockLogID,
+                'IBLOCK_ID' => $iblockLogID,
                 'NAME' => $iblock['NAME'],
                 'CODE' => $sectionCode,
                 'ACTIVE' => 'Y'
@@ -208,7 +210,7 @@ class Iblock
         $section = \CIBlockSection::GetList(
             array(), 
             array(
-                "IBLOCK_ID" => self::$iblockLogID, 
+                "IBLOCK_ID" => $iblockLogID, 
                 "NAME" => $iblock['NAME'], 
             ), 
             false,
@@ -234,10 +236,27 @@ class Iblock
             }
             $path = $iblock['NAME'] . ' -> ' . $path . $arFields['NAME'];
         } else $path = $iblock['NAME'] . ' -> ' . $arFields['NAME'];
-        
-        // Debug::dumpToFile($path, 'message', 'DebugLog');
 
         return $path;
+    }
+
+    //  Функция для получения ID инфоблока по коду
+    public static function getIblockIdByCode($code)
+    {
+        $rsIblock = \CIBlock::GetList(
+            [],
+            [
+                "CODE" => $code,
+                "ACTIVE" => "Y" 
+            ],
+            false,
+            false,
+            ['ID']
+        );
+        if ($arIblock = $rsIblock->Fetch()) {
+            return $arIblock["ID"];
+        }
+        return false;
     }
 
 }

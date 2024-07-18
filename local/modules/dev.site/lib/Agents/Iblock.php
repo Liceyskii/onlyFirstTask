@@ -2,12 +2,44 @@
 
 namespace Only\Site\Agents;
 
+use Only\Site\Handlers\Iblock;
 
-class Iblock
+class IblockAgent
 {
     public static function clearOldLogs()
     {
-        // Здесь напиши свой агент
+        global $DB;
+        
+        if (\Bitrix\Main\Loader::includeModule('iblock')) {
+            // Получаем ID инфоблока LOG
+            $iblockLogID = Iblock::getIblockIdByCode('LOG'); // Замените на ваш ID инфоблока LOG
+            
+            // Получаем список элементов, отсортированный по дате создания 
+            $rsLogs = \CIBlockElement::GetList(
+                ['TIMESTAMP_X' => 'DESC'], // Сортируем по возрастанию даты создания
+                [
+                    'IBLOCK_ID' => $iblockLogID
+                ],
+                false,
+                false,
+                ['ID', 'IBLOCK_ID', 'TIMESTAMP_X']
+            );
+            
+            for ($i = 0; $i < 10; $i++) {
+                if ($rsLogs->Fetch()) {
+                    // Пропускаем первые 10 элементов
+                }
+            }
+
+            while ($arLog = $rsLogs->Fetch()) {
+                if ($arLog) {
+                    \CIBlockElement::Delete($arLog['ID']);
+                }
+            }
+
+        }
+        
+        return '\\' . __CLASS__ . '::' . __FUNCTION__ . '();';
     }
 
     public static function example()
