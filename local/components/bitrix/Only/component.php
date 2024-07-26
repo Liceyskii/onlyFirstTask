@@ -16,6 +16,8 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
 /** @global CIntranetToolbar $INTRANET_TOOLBAR */
 global $INTRANET_TOOLBAR;
 
+require_once 'class.php';
+
 use Bitrix\Main\Context,
 	Bitrix\Main\Type\DateTime,
 	Bitrix\Main\Loader,
@@ -220,25 +222,8 @@ if($this->startResultCache(false, array(($arParams["CACHE_GROUPS"]==="N"? false:
 		ShowError(GetMessage("IBLOCK_MODULE_NOT_INSTALLED"));
 		return;
 	}
-	// Проверяем, передан ли IBLOCK_ID, если нет, получаем все инфоблоки переданного типа
-	if(is_numeric($arParams["IBLOCK_ID"]))
-	{
-		$rsIBlock = CIBlock::GetList(array(), array(
-			"ACTIVE" => "Y",
-			"ID" => $arParams["IBLOCK_ID"],
-		));
-		$arResult = $rsIBlock->GetNext();
-	}
-	else
-	{
-		$rsIBlock = CIBlock::GetList(array(), array(
-			"ACTIVE" => "Y",
-        	"IBLOCK_TYPE" => $arParams["IBLOCK_TYPE"],
-		));
-		while ($arIBlock = $rsIBlock->Fetch()) {
-			$arResult[] = $arIBlock;
-		}
-	}
+
+	$arResult = IblockHelper::getIblock($arParams);
 
 	
 	if (!$arResult)
@@ -536,13 +521,10 @@ if($this->startResultCache(false, array(($arParams["CACHE_GROUPS"]==="N"? false:
 	$arResult["NAV_RESULT"] = $rsElement;
 	$arResult["NAV_PARAM"] = $navComponentParameters;
 
-	$items = $arResult['ITEMS'];
-	$arResult['ITEMS'] = array();
-	foreach($items as $item) {
-		$itemIblockId = $item['IBLOCK_ID'];
-		$arResult['ITEMS'][$itemIblockId][] = $item;
-	}
 	
+	$arResult['ITEMS'] = IblockHelper::groupItemsByIblock($arResult['ITEMS']);
+
+
 	$this->setResultCacheKeys(array(
 		"ID",
 		"IBLOCK_TYPE_ID",
