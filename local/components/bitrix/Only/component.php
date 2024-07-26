@@ -220,6 +220,7 @@ if($this->startResultCache(false, array(($arParams["CACHE_GROUPS"]==="N"? false:
 		ShowError(GetMessage("IBLOCK_MODULE_NOT_INSTALLED"));
 		return;
 	}
+	// Проверяем, передан ли IBLOCK_ID, если нет, получаем все инфоблоки переданного типа
 	if(is_numeric($arParams["IBLOCK_ID"]))
 	{
 		$rsIBlock = CIBlock::GetList(array(), array(
@@ -237,11 +238,9 @@ if($this->startResultCache(false, array(($arParams["CACHE_GROUPS"]==="N"? false:
 		while ($arIBlock = $rsIBlock->Fetch()) {
 			$arResult[] = $arIBlock;
 		}
-		// print_r($arResult);
 	}
 
 	
-	// var_dump($arResult);
 	if (!$arResult)
 	{
 		$this->abortResultCache();
@@ -376,8 +375,6 @@ if($this->startResultCache(false, array(($arParams["CACHE_GROUPS"]==="N"? false:
 		$id = (int)$row['ID'];
 		$arResult["ITEMS"][$id] = $row;
 		$arResult["ELEMENTS"][] = $id;
-		// print_r($row);
-		// echo '<br>';
 	}
 	unset($row);
 
@@ -539,6 +536,13 @@ if($this->startResultCache(false, array(($arParams["CACHE_GROUPS"]==="N"? false:
 	$arResult["NAV_RESULT"] = $rsElement;
 	$arResult["NAV_PARAM"] = $navComponentParameters;
 
+	$items = $arResult['ITEMS'];
+	$arResult['ITEMS'] = array();
+	foreach($items as $item) {
+		$itemIblockId = $item['IBLOCK_ID'];
+		$arResult['ITEMS'][$itemIblockId][] = $item;
+	}
+	
 	$this->setResultCacheKeys(array(
 		"ID",
 		"IBLOCK_TYPE_ID",
