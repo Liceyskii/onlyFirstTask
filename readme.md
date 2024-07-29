@@ -1,8 +1,10 @@
 <h3>class.php</h3>
-<b>component.php:226</b><br>
+<b>getIblock</b>
+<i>component.php:226</i><br>
 В оригинальном news.list получает инфоблок по переданному IBLOCK_ID и записывает в переменную $arResult,<br>
 Теперь там происходит проверка, если IBLOCK_ID не передан, тогда извлекаются все инфоблки данного типа и помещаются в $arResult.<br>
-<b>component.php:525</b><br>
+<b>groupItemsByIblock</b>
+<i>component.php:525</i><br>
 Все элементы в $arResult['ITEMS'] группируются по ID инфоблоков. Старые, не сгруппированные данные стираются.<br>
 <h3>template.php</h3>
 <b>Строчки 20-21:</b><br>
