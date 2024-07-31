@@ -42,6 +42,7 @@ class CCustomTypeHtml extends \Bitrix\Main\UserField\Types\StringType
 		
 		$html = ob_get_contents();
 		ob_end_clean();
+		var_dump($_POST);
 		
 		return $html; 
 	}

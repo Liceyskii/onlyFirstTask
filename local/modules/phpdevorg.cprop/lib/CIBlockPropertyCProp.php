@@ -1,8 +1,9 @@
 <?php
 
 use \Bitrix\Main\Localization\Loc;
+use \Bitrix\Main\Diag\Debug;
 
-class CIBlockPropertyCProp
+class CIBlockPropertyCProp 
 {
     private static $showedCss = false;
     private static $showedJs = false;
@@ -50,6 +51,9 @@ class CIBlockPropertyCProp
             if($arItem['TYPE'] === 'string'){
                 $result .= self::showString($code, $arItem['TITLE'], $value, $strHTMLControlName);
             }
+            else if($arItem['TYPE'] === 'HTML'){
+                $result .= self::showHTML($code, $arItem['TITLE'], $value, $strHTMLControlName);
+            }
             else if($arItem['TYPE'] === 'file'){
                 $result .= self::showFile($code, $arItem['TITLE'], $value, $strHTMLControlName);
             }
@@ -65,6 +69,8 @@ class CIBlockPropertyCProp
         }
 
         $result .= '</table>';
+        
+        // Debug::dumpToFile($result, '$arResult', 'DebugLog');
 
         return $result;
     }
@@ -197,7 +203,7 @@ class CIBlockPropertyCProp
         }
         else{
             $arResult = ['VALUE' => '', 'DESCRIPTION' => ''];
-        }
+        }        
 
         return $arResult;
     }
@@ -214,6 +220,7 @@ class CIBlockPropertyCProp
             }
 
         }
+        
         return $return;
     }
 
@@ -227,6 +234,41 @@ class CIBlockPropertyCProp
         $result .= '<tr>
                     <td align="right">'.$title.': </td>
                     <td><input type="text" value="'.$v.'" name="'.$strHTMLControlName['VALUE'].'['.$code.']"/></td>
+                </tr>';
+
+        return $result;
+    }
+
+    private static function showHTML($code, $title, $arValue, $strHTMLControlName)
+    {
+        $result = '';
+
+        ob_start();
+		
+		CFileMan::AddHTMLEditorFrame(
+			$strHTMLControlName['VALUE'].'['.$code.']',
+			$arValue["VALUE"][$code],
+			'html',
+			"html"
+		);
+
+        echo '<input type="hidden" name="'.$strHTMLControlName['VALUE'].'['.$code.']"/>';
+		
+		$result = ob_get_contents();
+		ob_end_clean();
+
+        // ob_start();
+        // echo '<input type="hidden" name="' . $strHTMLControlName["VALUE"] . '[TYPE]" value="html">';
+        // $LHE = new CHTMLEditor();
+        // $LHE->Show(array('name' => $strHTMLControlName["VALUE"] . '[TEXT]', 'id' => $code, 'inputName' => $strHTMLControlName["VALUE"] . '[TEXT]', 'content' => $arValue["VALUE"][$code], 'width' => '100%', 'minBodyWidth' => 350, 'normalBodyWidth' => 555, 'height' => '200', 'bAllowPhp' => false, 'limitPhpAccess' => false, 'autoResize' => true, 'autoResizeOffset' => 40, 'useFileDialogs' => false, 'saveOnBlur' => true, 'showTaskbars' => false, 'showNodeNavi' => false, 'askBeforeUnloadPage' => true, 'bbCode' => false, 'siteId' => SITE_ID, 'controlsMap' => array(array('id' => 'Bold', 'compact' => true, 'sort' => 80), array('id' => 'Italic', 'compact' => true, 'sort' => 90), array('id' => 'Underline', 'compact' => true, 'sort' => 100), array('id' => 'Strikeout', 'compact' => true, 'sort' => 110), array('id' => 'RemoveFormat', 'compact' => true, 'sort' => 120), array('id' => 'Color', 'compact' => true, 'sort' => 130), array('id' => 'FontSelector', 'compact' => false, 'sort' => 135), array('id' => 'FontSize', 'compact' => false, 'sort' => 140), array('separator' => true, 'compact' => false, 'sort' => 145), array('id' => 'OrderedList', 'compact' => true, 'sort' => 150), array('id' => 'UnorderedList', 'compact' => true, 'sort' => 160), array('id' => 'AlignList', 'compact' => false, 'sort' => 190), array('separator' => true, 'compact' => false, 'sort' => 200), array('id' => 'InsertLink', 'compact' => true, 'sort' => 210), array('id' => 'InsertImage', 'compact' => false, 'sort' => 220), array('id' => 'InsertVideo', 'compact' => true, 'sort' => 230), array('id' => 'InsertTable', 'compact' => false, 'sort' => 250), array('separator' => true, 'compact' => false, 'sort' => 290), array('id' => 'Fullscreen', 'compact' => false, 'sort' => 310), array('id' => 'More', 'compact' => true, 'sort' => 400))));
+        // $result = ob_get_contents();
+        // ob_end_clean();
+
+        var_dump($_POST);
+
+        $result = '<tr>
+                    <td align="right">'.$title.': </td>
+                    <td>' . $result . '</td>
                 </tr>';
 
         return $result;
@@ -521,6 +563,7 @@ class CIBlockPropertyCProp
         $result = '';
         $arOption = [
             'string' => Loc::getMessage('IEX_CPROP_FIELD_TYPE_STRING'),
+            'HTML' => Loc::getMessage('IEX_CPROP_FIELD_TYPE_HTML'),
             'file' => Loc::getMessage('IEX_CPROP_FIELD_TYPE_FILE'),
             'text' => Loc::getMessage('IEX_CPROP_FIELD_TYPE_TEXT'),
             'date' => Loc::getMessage('IEX_CPROP_FIELD_TYPE_DATE'),
