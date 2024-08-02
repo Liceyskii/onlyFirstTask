@@ -1,7 +1,6 @@
 <?php
 
 use \Bitrix\Main\Localization\Loc;
-use \Bitrix\Main\Diag\Debug;
 
 class CIBlockPropertyCProp 
 {
@@ -69,8 +68,6 @@ class CIBlockPropertyCProp
         }
 
         $result .= '</table>';
-        
-        // Debug::dumpToFile($result, '$arResult', 'DebugLog');
 
         return $result;
     }
@@ -180,8 +177,32 @@ class CIBlockPropertyCProp
         return $result;
     }
 
+    private static function checkHTML()
+    {
+
+        $result = array();
+
+        foreach ($_POST as $p => $value) {
+            if (substr($p, 0, 14) === 'HTMLCUSTOMFORM') {
+                $arResult['key'] = substr($p, 14);
+                $arResult['value'] = $value;
+                $result[] = $arResult;
+            } 
+        }
+
+        return $result;
+    }
+
     public static function ConvertToDB($arProperty, $arValue)
     {
+        $htmlValue = self::checkHTML($_POST);
+        
+        if (!empty($htmlValue)) {
+            foreach ($htmlValue as $v) {
+                $arValue['VALUE'][$v['key']] = $v['value'];
+            }
+        }
+
         $arFields = self::prepareSetting($arProperty['USER_TYPE_SETTINGS']);
 
         foreach($arValue['VALUE'] as $code => $value){
@@ -243,28 +264,19 @@ class CIBlockPropertyCProp
     {
         $result = '';
 
+        $value = is_array($arValue["VALUE"])? $arValue["VALUE"][$code] : '';
+
         ob_start();
 		
 		CFileMan::AddHTMLEditorFrame(
-			$strHTMLControlName['VALUE'].'['.$code.']',
-			$arValue["VALUE"][$code],
-			'html',
+			'HTMLCUSTOMFORM' . $code,
+			$value,
+			"html",
 			"html"
 		);
-
-        echo '<input type="hidden" name="'.$strHTMLControlName['VALUE'].'['.$code.']"/>';
 		
 		$result = ob_get_contents();
 		ob_end_clean();
-
-        // ob_start();
-        // echo '<input type="hidden" name="' . $strHTMLControlName["VALUE"] . '[TYPE]" value="html">';
-        // $LHE = new CHTMLEditor();
-        // $LHE->Show(array('name' => $strHTMLControlName["VALUE"] . '[TEXT]', 'id' => $code, 'inputName' => $strHTMLControlName["VALUE"] . '[TEXT]', 'content' => $arValue["VALUE"][$code], 'width' => '100%', 'minBodyWidth' => 350, 'normalBodyWidth' => 555, 'height' => '200', 'bAllowPhp' => false, 'limitPhpAccess' => false, 'autoResize' => true, 'autoResizeOffset' => 40, 'useFileDialogs' => false, 'saveOnBlur' => true, 'showTaskbars' => false, 'showNodeNavi' => false, 'askBeforeUnloadPage' => true, 'bbCode' => false, 'siteId' => SITE_ID, 'controlsMap' => array(array('id' => 'Bold', 'compact' => true, 'sort' => 80), array('id' => 'Italic', 'compact' => true, 'sort' => 90), array('id' => 'Underline', 'compact' => true, 'sort' => 100), array('id' => 'Strikeout', 'compact' => true, 'sort' => 110), array('id' => 'RemoveFormat', 'compact' => true, 'sort' => 120), array('id' => 'Color', 'compact' => true, 'sort' => 130), array('id' => 'FontSelector', 'compact' => false, 'sort' => 135), array('id' => 'FontSize', 'compact' => false, 'sort' => 140), array('separator' => true, 'compact' => false, 'sort' => 145), array('id' => 'OrderedList', 'compact' => true, 'sort' => 150), array('id' => 'UnorderedList', 'compact' => true, 'sort' => 160), array('id' => 'AlignList', 'compact' => false, 'sort' => 190), array('separator' => true, 'compact' => false, 'sort' => 200), array('id' => 'InsertLink', 'compact' => true, 'sort' => 210), array('id' => 'InsertImage', 'compact' => false, 'sort' => 220), array('id' => 'InsertVideo', 'compact' => true, 'sort' => 230), array('id' => 'InsertTable', 'compact' => false, 'sort' => 250), array('separator' => true, 'compact' => false, 'sort' => 290), array('id' => 'Fullscreen', 'compact' => false, 'sort' => 310), array('id' => 'More', 'compact' => true, 'sort' => 400))));
-        // $result = ob_get_contents();
-        // ob_end_clean();
-
-        var_dump($_POST);
 
         $result = '<tr>
                     <td align="right">'.$title.': </td>
